@@ -1,4 +1,4 @@
-ARDUINOFOLDER	= /home/jof/apps/arduino
+ARDUINOFOLDER	= /opt/arduino
 CC		= $(ARDUINOFOLDER)/hardware/tools/avr/bin/avr-gcc
 CPP		= $(ARDUINOFOLDER)/hardware/tools/avr/bin/avr-g++
 AR		= $(ARDUINOFOLDER)/hardware/tools/avr/bin/avr-ar
