@@ -51,12 +51,13 @@ kill $LASTPID
 wait $LASTPID 2>/dev/null
 echo -e "\bDone"
 
-echo "Extracting libraries..."
+echo -n "Extracting libraries... "
 unzip -qd ${TEMPFOLDER} ${TEMPFOLDER}/PID.zip
 unzip -qd ${TEMPFOLDER} ${TEMPFOLDER}/PID-AutoTune.zip
 for d in $(find ${TEMPFOLDER}/br3tt* -type d -name PID*_v*)
 do
     sudo mv "$d" /opt/arduino/libraries
 done
+echo "Done"
 
 rm -Rf ${TEMPFOLDER}
