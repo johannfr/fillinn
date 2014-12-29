@@ -3,6 +3,9 @@
 
 void setup();
 void loop();
+
+double getUpdatedAverage(double, double*, int*, int*);
+
 void cmd_setpoint(int, char**);
 void cmd_run(int, char**);
 void cmd_stop(int, char**);

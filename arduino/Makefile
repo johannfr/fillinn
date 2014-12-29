@@ -3,7 +3,7 @@ CC		= $(ARDUINOFOLDER)/hardware/tools/avr/bin/avr-gcc
 CPP		= $(ARDUINOFOLDER)/hardware/tools/avr/bin/avr-g++
 AR		= $(ARDUINOFOLDER)/hardware/tools/avr/bin/avr-ar
 OBJCOPY		= $(ARDUINOFOLDER)/hardware/tools/avr/bin/avr-objcopy
-AVRDUDE		= $(ARDUINOFOLDER)/hardware/tools/avrdude
+AVRDUDE		= $(ARDUINOFOLDER)/hardware/tools/avr/bin/avrdude
 LIBRARIES	= $(ARDUINOFOLDER)/hardware/arduino/avr/libraries
 EXTLIB		= $(ARDUINOFOLDER)/libraries
 CFLAGS		= -g -Os -w -ffunction-sections -fdata-sections -MMD -mmcu=atmega328p -DF_CPU=8000000L -DARDUINO=151
@@ -64,5 +64,5 @@ clean:
 	-rm -f *~ core
 
 upload: all
-	$(AVRDUDE) -C$(ARDUINOFOLDER)/hardware/tools/avrdude.conf -q -q -patmega328p -carduino -P/dev/ttyUSB0 -b57600 -D -Uflash:w:$(TARGET):i
+	$(AVRDUDE) -C$(ARDUINOFOLDER)/hardware/tools/avr/etc/avrdude.conf -q -q -patmega328p -carduino -P/dev/ttyUSB0 -b57600 -D -Uflash:w:$(TARGET):i
 
