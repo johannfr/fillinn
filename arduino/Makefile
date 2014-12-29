@@ -8,7 +8,7 @@ LIBRARIES	= $(ARDUINOFOLDER)/hardware/arduino/avr/libraries
 EXTLIB		= $(ARDUINOFOLDER)/libraries
 CFLAGS		= -g -Os -w -ffunction-sections -fdata-sections -MMD -mmcu=atmega328p -DF_CPU=8000000L -DARDUINO=151
 CPPFLAGS	= -g -Os -w -fno-exceptions -ffunction-sections -fdata-sections -MMD -mmcu=atmega328p -DF_CPU=8000000L -DARDUINO=151
-INCPATH		= -Iinclude/ -I$(ARDUINOFOLDER)/ -I$(ARDUINOFOLDER)/hardware/arduino/avr/cores/arduino -I$(ARDUINOFOLDER)/hardware/arduino/avr/variants/standard -I$(LIBRARIES)/SoftwareSerial -I$(EXTLIB)/PID_v1 -I$(EXTLIB)/PID_AutoTune_v0
+INCPATH		= -Iinclude/ -I$(ARDUINOFOLDER)/ -I$(ARDUINOFOLDER)/hardware/arduino/avr/cores/arduino -I$(ARDUINOFOLDER)/hardware/arduino/avr/variants/standard -I$(LIBRARIES)/SoftwareSerial -I$(EXTLIB)/CmdArduino
 LINK		= $(CPP)
 LFLAGS		=
 LIBS		= -lm
@@ -40,21 +40,18 @@ obj/%.o: $(ARDUINOFOLDER)/hardware/arduino/avr/cores/arduino/%.c
 	$(CC) -c $(CFLAGS) $(INCPATH) -o $@ $<
 
 ####### Build rules
-all: $(ARDUINO_OBJ_FILES) $(OBJECTS) SoftwareSerial ArduinoPid ArduinoAutoTune core elf hex
+all: $(ARDUINO_OBJ_FILES) $(OBJECTS) SoftwareSerial CmdArduino core elf hex
 
 #$(LINK) $(CFLAGS) $(OBJECTS) $(LIBS) -o $(TARGET)
 
 SoftwareSerial:
 	$(CPP) -c $(CPPFLAGS) $(INCPATH) -o obj/SoftwareSerial.o $(LIBRARIES)/SoftwareSerial/SoftwareSerial.cpp
 
-ArduinoPid:
-	$(CPP) -c $(CPPFLAGS) $(INCPATH) -o obj/PID_v1.o $(EXTLIB)/PID_v1/PID_v1.cpp
-
-ArduinoAutoTune:
-	$(CPP) -c $(CPPFLAGS) $(INCPATH) -o obj/PID_AutoTune_v0.o $(EXTLIB)/PID_AutoTune_v0/PID_AutoTune_v0.cpp	
+CmdArduino:
+	$(CPP) -c $(CPPFLAGS) $(INCPATH) -o obj/CmdArduino.o $(EXTLIB)/CmdArduino/Cmd.cpp
 
 elf:
-	$(CC) -Os -Wl,--gc-sections -mmcu=atmega328p -o $(TARGET).elf $(OBJECTS) obj/SoftwareSerial.o obj/PID_v1.o obj/PID_AutoTune_v0.o obj/core.a -lm
+	$(CC) -Os -Wl,--gc-sections -mmcu=atmega328p -o $(TARGET).elf $(OBJECTS) obj/SoftwareSerial.o obj/CmdArduino.o obj/core.a -lm
 
 core: $(ARDUINO_OBJ_FILES)
 	$(AR) rcs obj/core.a $^

@@ -37,27 +37,18 @@ sudo tar -zx -C /opt -f ${TEMPFOLDER}/${ARDUINOARCHIVE}
 echo "Creating symlink."
 sudo ln -s /opt/arduino-${ARDUINOVERSION} /opt/arduino
 
-printRunning "Getting PID library..." &
+printRunning "Getting CmdArduino library..." &
 LASTPID=$!
-wget -q -O${TEMPFOLDER}/PID.zip https://github.com/br3ttb/Arduino-PID-Library/zipball/master
-kill $LASTPID
-wait $LASTPID 2>/dev/null
-echo -e "\bDone"
-
-printRunning "Getting PID AutoTune library..." &
-LASTPID=$!
-wget -q -O${TEMPFOLDER}/PID-AutoTune.zip https://github.com/br3ttb/Arduino-PID-AutoTune-Library/zipball/master
+wget -q -O${TEMPFOLDER}/CmdArduino.zip https://github.com/joshmarinacci/CmdArduino/archive/master.zip
 kill $LASTPID
 wait $LASTPID 2>/dev/null
 echo -e "\bDone"
 
 echo -n "Extracting libraries... "
-unzip -qd ${TEMPFOLDER} ${TEMPFOLDER}/PID.zip
-unzip -qd ${TEMPFOLDER} ${TEMPFOLDER}/PID-AutoTune.zip
-for d in $(find ${TEMPFOLDER}/br3tt* -type d -name PID*_v*)
-do
-    sudo mv "$d" /opt/arduino/libraries
-done
+unzip -qd ${TEMPFOLDER} ${TEMPFOLDER}/CmdArduino.zip
+sudo mv ${TEMPFOLDER}/CmdArduino-master /opt/arduino/libraries/CmdArduino
+
+
 echo "Done"
 
 rm -Rf ${TEMPFOLDER}

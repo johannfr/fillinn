@@ -1,164 +1,57 @@
 #include "Arduino.h"
 #include <main.hpp>
 
-#include <PID_v1.h>
-#include <PID_AutoTune_v0.h>
-
-byte ATuneModeRemember=2;
-double input=80, output=50, setpoint=180;
-double kp=2,ki=0.5,kd=2;
-
-double kpmodel=1.5, taup=100, theta[50];
-double outputStart=5;
-double aTuneStep=50, aTuneNoise=1, aTuneStartValue=100;
-unsigned int aTuneLookBack=20;
-
-boolean tuning = false;
-unsigned long  modelTime, serialTime;
-
-PID myPID(&input, &output, &setpoint,kp,ki,kd, DIRECT);
-PID_ATune aTune(&input, &output);
-
-//set to false to connect to the real world
-boolean useSimulation = true;
+#include <Cmd.h>
 
 void setup()
 {
-  if(useSimulation)
-  {
-    for(byte i=0;i<50;i++)
-    {
-      theta[i]=outputStart;
-    }
-    modelTime = 0;
-  }
-  //Setup the pid 
-  myPID.SetMode(AUTOMATIC);
-
-  if(tuning)
-  {
-    tuning=false;
-    changeAutoTune();
-    tuning=true;
-  }
+  // init the command line and set it for a speed of 57600
+  Serial.begin(115200);
+  cmdInit(&Serial);
   
-  serialTime = 0;
-  Serial.begin(9600);
-
+  // add the commands to the command table. These functions must
+  // already exist in the sketch. See the functions below. 
+  // The functions need to have the format:
+  //
+  // void func_name(int arg_cnt, char **args)
+  //
+  // arg_cnt is the number of arguments typed into the command line
+  // args is a list of argument strings that were typed into the command line
+  cmdAdd("args", arg_display);
 }
 
 void loop()
 {
-
-  unsigned long now = millis();
-
-  if(!useSimulation)
-  { //pull the input in from the real world
-    input = analogRead(0);
-  }
-  
-  if(tuning)
-  {
-    byte val = (aTune.Runtime());
-    if (val!=0)
-    {
-      tuning = false;
-    }
-    if(!tuning)
-    { //we're done, set the tuning parameters
-      kp = aTune.GetKp();
-      ki = aTune.GetKi();
-      kd = aTune.GetKd();
-      myPID.SetTunings(kp,ki,kd);
-      AutoTuneHelper(false);
-    }
-  }
-  else myPID.Compute();
-  
-  if(useSimulation)
-  {
-    theta[30]=output;
-    if(now>=modelTime)
-    {
-      modelTime +=100; 
-      DoModel();
-    }
-  }
-  else
-  {
-     analogWrite(0,output); 
-  }
-  
-  //send-receive with processing if it's time
-  if(millis()>serialTime)
-  {
-    SerialReceive();
-    SerialSend();
-    serialTime+=500;
-  }
+  cmdPoll();
 }
 
-void changeAutoTune()
+// Example to show what the argument count and arguments look like. The
+// arg_cnt is the number of arguments typed in by the user. "char **args" is 
+// a bit nasty looking, but its a list of the arguments typed in as ASCII strings. 
+// In C, char *something means an array of characters, aka a string. So
+// char **something is an array of an array of characters, or a string array.
+// 
+// Usage: At the command line, type
+// args hello world i love you 3 4 5 yay
+//
+// The output should look like this:
+// Arg 0: args
+// Arg 1: hello
+// Arg 2: world
+// Arg 3: i
+// Arg 4: love
+// Arg 5: you
+// Arg 6: 3
+// Arg 7: 4
+// Arg 8: 5
+// Arg 9: yay
+void arg_display(int arg_cnt, char **args)
 {
- if(!tuning)
+  for (int i=0; i<arg_cnt; i++)
   {
-    //Set the output to the desired starting frequency.
-    output=aTuneStartValue;
-    aTune.SetNoiseBand(aTuneNoise);
-    aTune.SetOutputStep(aTuneStep);
-    aTune.SetLookbackSec((int)aTuneLookBack);
-    AutoTuneHelper(true);
-    tuning = true;
+    Serial.print("Arg ");
+    Serial.print(i);
+    Serial.print(": ");
+    Serial.println(args[i]);
   }
-  else
-  { //cancel autotune
-    aTune.Cancel();
-    tuning = false;
-    AutoTuneHelper(false);
-  }
-}
-
-void AutoTuneHelper(boolean start)
-{
-  if(start)
-    ATuneModeRemember = myPID.GetMode();
-  else
-    myPID.SetMode(ATuneModeRemember);
-}
-
-
-void SerialSend()
-{
-  Serial.print("setpoint: ");Serial.print(setpoint); Serial.print(" ");
-  Serial.print("input: ");Serial.print(input); Serial.print(" ");
-  Serial.print("output: ");Serial.print(output); Serial.print(" ");
-  if(tuning){
-    Serial.println("tuning mode");
-  } else {
-    Serial.print("kp: ");Serial.print(myPID.GetKp());Serial.print(" ");
-    Serial.print("ki: ");Serial.print(myPID.GetKi());Serial.print(" ");
-    Serial.print("kd: ");Serial.print(myPID.GetKd());Serial.println();
-  }
-}
-
-void SerialReceive()
-{
-  if(Serial.available())
-  {
-   char b = Serial.read(); 
-   Serial.flush(); 
-   if((b=='1' && !tuning) || (b!='1' && tuning))changeAutoTune();
-  }
-}
-
-void DoModel()
-{
-  //cycle the dead time
-  for(byte i=0;i<49;i++)
-  {
-    theta[i] = theta[i+1];
-  }
-  //compute the input
-  input = (kpmodel / taup) *(theta[0]-outputStart) + input*(1-1/taup) + ((float)random(-10,10))/100;
-
 }
