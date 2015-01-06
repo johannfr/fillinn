@@ -22,7 +22,7 @@ def setSpeedValue():
 if __name__ == "__main__":
     buttonPressed = False
     sonar = Sonar(LEFT_SONAR_PIN, 'AN')
-    optFlow = OpticalFlow()
+    optFlow = OpticalFlow(2)            # Bus 2 for the Y position on the board
 
     while  True:
         if not buttonPressed:
