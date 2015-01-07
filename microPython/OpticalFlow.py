@@ -142,30 +142,8 @@ class OpticalFlow:
 
     # read latest values from sensor and fill in x,y and totals
     def update(self):
-        # TODO: check for constants used
-        # TODO: return x and y changes
-        surface_quality = self.read_register(ADNS3080_SQUAL)
-        # small delay
-        pyb.udelay(50)
-
-        # check for movement, update x,y values
-        motion_reg = self.read_register(ADNS3080_MOTION)
-        _overflow = ((motion_reg & 0x10) != 0)              # check if we've had an overflow
-        if( (motion_reg & 0x80) != 0 ):
-            raw_dx = read_register(ADNS3080_DELTA_X)
-            # small delay
-            pyb.udelay(50)
-            raw_dy = read_register(ADNS3080_DELTA_Y)
-            _motion = True
-        else:
-            raw_dx = 0
-            raw_dy = 0
-
-        last_update = pyb.millis()
-
-        apply_orientation_matrix()
-
-        return True
+        # TODO:
+        pass
 
     # clear_motion - will cause the Delta_X, Delta_Y, and internal motion registers to be cleared
     def clear_motion(self):
