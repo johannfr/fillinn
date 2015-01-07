@@ -7,17 +7,21 @@ ADNS3080_FRAME_PERIOD_MIN_BOUND_LOWER = 0x1b
 ADNS3080_FRAME_PERIOD_MIN_BOUND_UPPER = 0x1c
 
 # ADNS3080 hardware config
-ADNS3080_PIXELS_X = 30
-ADNS3080_PIXELS_Y = 30
-ADNS3080_CLOCK_SPEED =24000000
+ADNS3080_PIXELS_X       = 30
+ADNS3080_PIXELS_Y       = 30
+ADNS3080_CLOCK_SPEED    = 24000000
 
-CLOCK_SPEED_USED = 4000000                      # This speed seams to work fine
+CLOCK_SPEED_USED        = 4000000           # This speed seams to work fine
 
-ADNS3080_FRAME_CAPTURE = 0x13
 
-ADNS3080_PRODUCT_ID = 0x00
+# Register Map for the ADNS3080 Optical OpticalFlow Sensor
+ADNS3080_PRODUCT_ID     = 0x00
+ADNS3080_MOTION         = 0x02
+ADNS3080_DELTA_X        = 0x03
+ADNS3080_DELTA_Y        = 0x04
+ADNS3080_FRAME_CAPTURE  = 0x13
 
-ADNS3080_RESET =       'Y2'       #RESET
+ADNS3080_RESET          = 'Y2'              # RESET pin
 
 class OpticalFlow:
     def __init__(self, bus):
@@ -38,12 +42,6 @@ class OpticalFlow:
 
     def init(self, bus):
         retry = 0
-
-        #---- Not sure if all of this is needed ----#
-        #pyb.Pin(self.data_out, pyb.Pin.OUT_PP)
-        #pyb.Pin(self.data_in, pyb.Pin.IN)
-        #pyb.Pin(self.clock, pyb.Pin.OUT_PP)
-        #-------------------------------------------#
         
         self._cs_pin = pyb.Pin(self.chip_select, pyb.Pin.OUT_PP)
         if( ADNS3080_RESET != 0):
@@ -96,7 +94,7 @@ class OpticalFlow:
                     print("failed to find first pixel\n")
 
                 isFirstPixel = False
-                pixelValue = ( regValue << 2)
+                pixelValue = ( regValue << 2) & 255             # Shift to the left and cut off the last to bits
                 data += str(pixelValue)                       # Used to be -> pixelValue,DEC not sure what the ,DEC did do
                 if( j!= ADNS3080_PIXELS_X-1 ):
                     data += ","
@@ -142,13 +140,35 @@ class OpticalFlow:
         # take the chip select high to de-select
         self._cs_pin.high()
 
-    # clear_motion - will cause the Delta_X, Delta_Y, and internal motion registers to be cleared
-    def clear_motion(self):
-        # TODO:
-        pass
-
     # read latest values from sensor and fill in x,y and totals
     def update(self):
+        # TODO: check for constants used
+        # TODO: return x and y changes
+        surface_quality = self.read_register(ADNS3080_SQUAL)
+        # small delay
+        pyb.udelay(50)
+
+        # check for movement, update x,y values
+        motion_reg = self.read_register(ADNS3080_MOTION)
+        _overflow = ((motion_reg & 0x10) != 0)              # check if we've had an overflow
+        if( (motion_reg & 0x80) != 0 ):
+            raw_dx = read_register(ADNS3080_DELTA_X)
+            # small delay
+            pyb.udelay(50)
+            raw_dy = read_register(ADNS3080_DELTA_Y)
+            _motion = True
+        else:
+            raw_dx = 0
+            raw_dy = 0
+
+        last_update = pyb.millis()
+
+        apply_orientation_matrix()
+
+        return True
+
+    # clear_motion - will cause the Delta_X, Delta_Y, and internal motion registers to be cleared
+    def clear_motion(self):
         # TODO:
         pass
 
