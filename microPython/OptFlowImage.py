@@ -2,8 +2,9 @@
 
 import serial
 from Tkinter import *
+import time
 
-comPort = "/dev/ttyACM1"  #default com port
+comPort = "/dev/ttyACM0"  #default com port
 comPortBaud = 115200
 
 class App:
@@ -19,25 +20,25 @@ class App:
         # set main window's title
         master.title("ADNS3080ImageGrabber")
 
-        frame = Frame(master)
-        frame.grid(row=0,column=0)
+        self.frame = Frame(master)
+        self.frame.grid(row=0,column=0)
 
         self.comPortStr = StringVar()
-        self.comPort = Entry(frame,textvariable=self.comPortStr)
+        self.comPort = Entry(self.frame,textvariable=self.comPortStr)
         self.comPort.grid(row=0,column=0)
         self.comPort.delete(0, END)
         self.comPort.insert(0,comPort)
 
-        self.button = Button(frame, text="Open", fg="red", command=self.open_serial)
+        self.button = Button(self.frame, text="Start", fg="red", command=self.start_loop)
         self.button.grid(row=0,column=1)
 
         self.entryStr = StringVar()
-        self.entry = Entry(frame,textvariable=self.entryStr)
+        self.entry = Entry(self.frame,textvariable=self.entryStr)
         self.entry.grid(row=0,column=2)
         self.entry.delete(0, END)
         self.entry.insert(0,"0x13")
 
-        self.send_button = Button(frame, text="Get Data", command=self.get_data)
+        self.send_button = Button(self.frame, text="Get Data", command=self.get_data)
         self.send_button.grid(row=0,column=3)
 
         self.canvas = Canvas(master, width=self.grid_size*self.num_pixels, height=self.grid_size*self.num_pixels)
@@ -47,6 +48,13 @@ class App:
     def open_serial(self):
         self.ser = serial.Serial(self.comPortStr.get(), comPortBaud)
         self.is_serial_open = True
+
+    def start_loop(self):
+        time.sleep(1)
+        while True:
+            time.sleep(1)
+            self.get_data()
+            self.frame.update()
 
     def get_data(self):
         if not self.is_serial_open:

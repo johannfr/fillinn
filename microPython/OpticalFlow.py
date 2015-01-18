@@ -25,6 +25,12 @@ ADNS3080_RESET          = 'Y2'              # RESET pin
 
 class OpticalFlow:
     def __init__(self, bus):
+        self.x = 0
+        self.y = 0
+        self.dx = 0
+        self.dy = 0
+        self._motion = False
+
         if bus == 1:
             self.data_out =      'X8'        #MOSI
             self.data_in  =      'X7'        #MISO
@@ -38,7 +44,9 @@ class OpticalFlow:
             self.chip_select =   'Y5'        #SS
 
         if( self.init(bus) == False ):
-            print('Failed to initialise ADNS3080')
+            print('#####################################')
+            print('----Failed to initialise ADNS3080----')
+            print('#####################################')
 
     def init(self, bus):
         retry = 0
@@ -110,13 +118,17 @@ class OpticalFlow:
         self._cs_pin.low()
 
         # send the device the register you want to read
-        junk = self.spi.send_recv((address).to_bytes(1))
+        #junk = self.spi.send_recv((address).to_bytes(1))
+        self.spi.send((address).to_bytes(1))
+        junk = self.spi.recv(1)
 
         # small delay
         pyb.udelay(50)
 
         # end a value of 0 to read the first byte returned
-        result = self.spi.send_recv((0x00).to_bytes(1))
+        #result = self.spi.send_recv((0x00).to_bytes(1))
+        self.spi.send((0x00).to_bytes(1))
+        result = self.spi.recv(1)
 
         # take the chip select high to de-select
         self._cs_pin.high()
@@ -142,13 +154,54 @@ class OpticalFlow:
 
     # read latest values from sensor and fill in x,y and totals
     def update(self):
-        # TODO:
-        pass
+        # TODO: check for constants used
+        # TODO: return x and y changes
+        surface_quality = self.read_register(ADNS3080_SQUAL)
+        # small delay
+        pyb.udelay(50)
+
+        # check for movement, update x,y values
+        motion_reg = self.read_register(ADNS3080_MOTION)
+        _overflow = ((motion_reg & 0x10) != 0)              # check if we've had an overflow # TODO: do something whit this info
+        if( (motion_reg & 0x80) != 0 ):
+            raw_dx = self.read_register(ADNS3080_DELTA_X)
+            # small delay
+            pyb.udelay(50)
+            raw_dy = self.read_register(ADNS3080_DELTA_Y)
+            self._motion = True
+        else:
+            raw_dx = 0
+            raw_dy = 0
+
+        last_update = pyb.millis()
+
+        # Fix for orientation if needed
+        #self.apply_orientation_matrix()
+
+        self.dx = raw_dx
+        self.dy = raw_dy
+
+        self.x += raw_dx
+        self.y += raw_dy
+
+        #print('x, y:\t', self.x, '\t', self.y)
+        return True
 
     # clear_motion - will cause the Delta_X, Delta_Y, and internal motion registers to be cleared
     def clear_motion(self):
-        # TODO:
+        # writing anything to this register will clear the sensor's motion registers
+        self.write_register(ADNS3080_MOTION_CLEAR, 0xFF)
+        self.x = 0
+        self.y = 0
+        self.dx = 0
+        self.dy = 0
+        self._motion = False
+
+    # rotate raw values to arrive at final x,y,dx and dy values
+    def apply_orientation_matrix(self):
+        # TODO: fix for any orientation
         pass
+
 
 if __name__ == "__main__":
     optFlow = OpticalFlow(2)           # Bus 2 for the Y position
