@@ -1,4 +1,5 @@
 import pyb
+import struct
 
 ADNS3080_SQUAL = 0x05
 ADNS3080_FRAME_PERIOD_MAX_BOUND_LOWER = 0x19
@@ -113,7 +114,7 @@ class OpticalFlow:
         return data
 
     # Read a register from the sensor
-    def read_register(self, address):
+    def read_register(self, address, signed=False):
         # take the chip select low to select the device
         self._cs_pin.low()
 
@@ -133,9 +134,14 @@ class OpticalFlow:
         # take the chip select high to de-select
         self._cs_pin.high()
 
-        return int.from_bytes(result)
+        # Fix for signed or unsigned bytes
+        if signed:
+            result = struct.unpack('b', result)[0]
+        else:
+            result = struct.unpack('B', result)[0]
+        return result
 
-    # write a value to one of the sensor's registers
+    # write a value to one of the sensor's registers    
     def write_register(self, address, value):                       # TODO: Check if (int).to_bytes(1) is needed
         # take the chip select low to select the device
         self._cs_pin.low()
@@ -164,10 +170,10 @@ class OpticalFlow:
         motion_reg = self.read_register(ADNS3080_MOTION)
         _overflow = ((motion_reg & 0x10) != 0)              # check if we've had an overflow # TODO: do something whit this info
         if( (motion_reg & 0x80) != 0 ):
-            raw_dx = self.read_register(ADNS3080_DELTA_X)
+            raw_dx = self.read_register(ADNS3080_DELTA_X, signed=True)
             # small delay
             pyb.udelay(50)
-            raw_dy = self.read_register(ADNS3080_DELTA_Y)
+            raw_dy = self.read_register(ADNS3080_DELTA_Y, signed=True)
             self._motion = True
         else:
             raw_dx = 0
@@ -184,7 +190,6 @@ class OpticalFlow:
         self.x += raw_dx
         self.y += raw_dy
 
-        #print('x, y:\t', self.x, '\t', self.y)
         return True
 
     # clear_motion - will cause the Delta_X, Delta_Y, and internal motion registers to be cleared
