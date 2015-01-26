@@ -2,19 +2,19 @@
 #include <main.hpp>
 
 #include <Cmd.h>
+#include <Wire.h>
 
 
-#define pPWMFront 9
-#define pDirectionFrontA 7
-#define pDirectionFrontB 8
-#define pEncoderFront 4
+#define pPWMFront 3
+#define pEncoderFront 2
 
-#define pPWMBack 10
-#define pDirectionBackA 12
-#define pDirectionBackB 11
-#define pEncoderBack 2
+#define pPWMBack 5
+#define pEncoderBack 4
 
 #define inputAvgSize 10
+
+#define PCFAddress 0x38
+volatile uint8_t PCFValue = 0x00;
 
 double setpoint = 10000.0;
 double error_front = 0, error_back = 0;
@@ -22,17 +22,14 @@ double PID_front = 0, PID_back = 0;
 
 bool pidRunning = false;
 
-bool directionA = false;
-bool directionB = false;
-
 double
     P_front = 0.0,
     I_front = 0.0,
     D_front = 0.0;
 
 double
-    kP_front = 0.4,
-    kI_front = 0.008,
+    kP_front = 0.3,
+    kI_front = 0.01,
     kD_front = 0.0;
 
 double
@@ -41,8 +38,8 @@ double
     D_back = 0.0;
 
 double
-    kP_back = 0.4,
-    kI_back = 0.008,
+    kP_back = 0.3,
+    kI_back = 0.01,
     kD_back = 0.0;
 
 double inputAvgFront[inputAvgSize];
@@ -64,30 +61,28 @@ void setup()
 {
     Serial.begin(115200);
     pinMode(pPWMFront, OUTPUT);
-    pinMode(pDirectionFrontA, OUTPUT);
-    pinMode(pDirectionFrontB, OUTPUT);
     pinMode(pEncoderFront, INPUT);
     digitalWrite(pEncoderFront, HIGH); // Enable pull-ups
 
     pinMode(pPWMBack, OUTPUT);
-    pinMode(pDirectionBackA, OUTPUT);
-    pinMode(pDirectionBackB, OUTPUT);
     pinMode(pEncoderBack, INPUT);
     digitalWrite(pEncoderBack, HIGH);
 
 
     cmdInit(&Serial);
     cmdAdd("setpoint", cmd_setpoint);
+    cmdAdd("run", cmd_run);
+    cmdAdd("stop", cmd_stop);
+    cmdAdd("brake", cmd_brake);
+    cmdAdd("direction", cmd_direction);
+    cmdAdd("pcf", cmd_pcf);
+
+
 }
 
 void loop()
 {
     cmdPoll();
-
-    digitalWrite(pDirectionFrontA, directionA);
-    digitalWrite(pDirectionFrontB, directionB);
-    digitalWrite(pDirectionBackA, !directionA); // Invert, motor is other way around.
-    digitalWrite(pDirectionBackB, !directionB);
 
     measurement_front = pulseIn(pEncoderFront, HIGH, 5000);
     avgMeasurement_front = getUpdatedAverage(measurement_front, inputAvgFront, &inputAvgFrontIndex, &inputAvgFrontWritten);
@@ -150,6 +145,13 @@ double getUpdatedAverage(double newValue, double *array, int *index, int *writte
     return updatedAverage;
 }
 
+void writePCF(uint8_t newValue)
+{
+    Wire.beginTransmission((uint8_t)PCFAddress);
+    Wire.write(newValue);
+    Wire.endTransmission();
+}
+
 void cmd_setpoint(int arg_cnt, char **args)
 {
 
@@ -159,6 +161,18 @@ void cmd_setpoint(int arg_cnt, char **args)
         return;
     }
 
+    error_front = 0;
+    error_back = 0;
+    PID_front = 0;
+    PID_back = 0;
+    P_front = 0;
+    I_front = 0;
+    D_front = 0;
+    P_back = 0;
+    I_back = 0;
+    D_back = 0;
+    outputPWM_front = 0;
+    outputPWM_back = 0;
     setpoint = cmdStr2Num(args[1], 10);
 
 }
@@ -174,32 +188,54 @@ void cmd_run(int arg_cnt, char **args)
         return;
     }
 
-    // TODO Reset PID values.
+    error_front = 0;
+    error_back = 0;
+    PID_front = 0;
+    PID_back = 0;
+    P_front = 0;
+    I_front = 0;
+    D_front = 0;
+    P_back = 0;
+    I_back = 0;
+    D_back = 0;
     pidRunning = (cmdStr2Num(args[1], 10) == 1 ? true : false);
+    outputPWM_front = 0;
+    outputPWM_back = 0;
 }
 
 void cmd_stop(int arg_cnt, char **args)
 {
     pidRunning = false;
-    directionA = false;
-    directionB = false;
+    //FIXME directionA = false;
+    //FIXME directionB = false;
 }
 
 void cmd_brake(int arg_cnt, char **args)
 {
     pidRunning = false;
-    directionA = true;
-    directionB = true;
+    //FIXME directionA = true;
+    //FIXME directionB = true;
 }
 
 void cmd_direction(int arg_cnt, char **args)
 {
-    if (arg_cnt < 2)
+    /* if (arg_cnt < 2)
     {
         Serial.println(directionA, DEC);
         return;
     }
+    */
 
-    directionA = (cmdStr2Num(args[1], 10) == 1 ? true : false);
-    directionB = !directionA;
+    //FIXME directionA = (cmdStr2Num(args[1], 10) == 1 ? true : false);
+    //FIXME directionB = !directionA;
+}
+
+void cmd_pcf(int arg_cnt, char **args)
+{
+    if (arg_cnt < 2)
+    {
+        return;
+    }
+    uint8_t value = (uint8_t)cmdStr2Num(args[1], 10);
+    writePCF(value);
 }
