@@ -5,16 +5,20 @@
 #include <Wire.h>
 
 
-#define pPWMFront 3
-#define pEncoderFront 2
+// #define pPWMFront 3
+// #define pEncoderFront 2
 
 #define pPWMBack 5
 #define pEncoderBack 4
+
+#define pPWMFront 6
+#define pEncoderFront 7
 
 #define inputAvgSize 10
 
 #define PCFAddress 0x38
 volatile uint8_t PCFValue = 0x00;
+volatile bool direction = false;
 
 double setpoint = 10000.0;
 double error_front = 0, error_back = 0;
@@ -28,8 +32,8 @@ double
     D_front = 0.0;
 
 double
-    kP_front = 0.3,
-    kI_front = 0.01,
+    kP_front = 0.7,
+    kI_front = 0.04,
     kD_front = 0.0;
 
 double
@@ -38,8 +42,8 @@ double
     D_back = 0.0;
 
 double
-    kP_back = 0.3,
-    kI_back = 0.01,
+    kP_back = 0.7,
+    kI_back = 0.04,
     kD_back = 0.0;
 
 double inputAvgFront[inputAvgSize];
@@ -59,7 +63,7 @@ int outputPWM_front = 0, outputPWM_back = 0;
 
 void setup()
 {
-    Serial.begin(115200);
+    Serial.begin(9600);
     pinMode(pPWMFront, OUTPUT);
     pinMode(pEncoderFront, INPUT);
     digitalWrite(pEncoderFront, HIGH); // Enable pull-ups
@@ -76,7 +80,6 @@ void setup()
     cmdAdd("brake", cmd_brake);
     cmdAdd("direction", cmd_direction);
     cmdAdd("pcf", cmd_pcf);
-
 
 }
 
@@ -206,28 +209,37 @@ void cmd_run(int arg_cnt, char **args)
 void cmd_stop(int arg_cnt, char **args)
 {
     pidRunning = false;
-    //FIXME directionA = false;
-    //FIXME directionB = false;
+    PCFValue &= 0xc3;
+    writePCF(PCFValue);
 }
 
 void cmd_brake(int arg_cnt, char **args)
 {
     pidRunning = false;
-    //FIXME directionA = true;
-    //FIXME directionB = true;
+    PCFValue |= 0x3c;
+    writePCF(PCFValue);
 }
 
 void cmd_direction(int arg_cnt, char **args)
 {
-    /* if (arg_cnt < 2)
+    if (arg_cnt < 2)
     {
-        Serial.println(directionA, DEC);
+        Serial.println(direction, DEC);
         return;
     }
-    */
-
-    //FIXME directionA = (cmdStr2Num(args[1], 10) == 1 ? true : false);
-    //FIXME directionB = !directionA;
+    
+    direction = (cmdStr2Num(args[1], 10) == 1 ? true : false);
+    if (direction)
+    {
+        PCFValue &= ~0x3c;
+        PCFValue |= 0x24;
+    }
+    else
+    {
+        PCFValue &= ~0x3c;
+        PCFValue |= 0x18;
+    }
+    writePCF(PCFValue);
 }
 
 void cmd_pcf(int arg_cnt, char **args)
@@ -236,6 +248,6 @@ void cmd_pcf(int arg_cnt, char **args)
     {
         return;
     }
-    uint8_t value = (uint8_t)cmdStr2Num(args[1], 10);
-    writePCF(value);
+    PCFValue = (uint8_t)cmdStr2Num(args[1], 10);
+    writePCF(PCFValue);
 }
