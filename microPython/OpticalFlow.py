@@ -22,7 +22,7 @@ ADNS3080_DELTA_X        = 0x03
 ADNS3080_DELTA_Y        = 0x04
 ADNS3080_FRAME_CAPTURE  = 0x13
 
-ADNS3080_RESET          = 'Y2'              # RESET pin
+ADNS3080_RESET          = 'Y9'              # RESET pin
 
 class OpticalFlow:
     def __init__(self, bus):

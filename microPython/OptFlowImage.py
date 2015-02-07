@@ -85,7 +85,7 @@ class App:
             last = item
         print("data", data)
 
-        for y, line in enumerate(data.split("\\n")):
+        for y, line in enumerate(data.split("\r\n")):
             for x, item in enumerate(line.split(",")):
                 self.display_pixel(x, y, item)
             
