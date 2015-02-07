@@ -2,10 +2,10 @@ import pyb
 
 class Sonar:
 
-    def __init__(self, inputPin, inputType='AN'):
+    def __init__(self, inputPin, rxPin, inputType='AN'):
         self.type = inputType
         self.inputPin = inputPin
-
+        self.rxPin = pyb.Pin(rxPin, pyb.Pin.OUT)
         self.setSonar(inputType)
 
     def setSonar(self, inputType):
@@ -15,6 +15,13 @@ class Sonar:
         elif self.type == 'PW':
             # TODO
             pass
+
+    def enabled(self, flag):
+        if flag == True:
+            self.rxPin.high()
+        else:
+            self.rxPin.low()
+
 
     def getDistance(self):
         if self.type == 'AN':
